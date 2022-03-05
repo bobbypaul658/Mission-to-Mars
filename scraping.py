@@ -127,35 +127,30 @@ def mars_facts():
     #Convert back to HTML format, add bootstrap
     return df.to_html()
 
+import scraping
+from flask import Flask, render_template, redirect, url_for
+from flask_pymongo import PyMongo
 
-## > SCRAPE HEMISPHERE <
+app = Flask(__name__)
 
-def hemisphere(browser):
-    url='https://marshemispheres.com/'
-    browser.visit(url)
+# Use flask_PyMongo to set up mongo connection
+app.config["MONGO_URI"] = "mongodb://localhost:8888//mars_app"
+mongo = PyMongo(app)
 
+@app.route("/")
+def index():
+    mars = mongo.db.mars.find_one()
+    return render_template("index2.html", mars=mars)
 
-    hemisphere_image_urls = []
-
-    imgs_links= browser.find_by_css("a.product-item h3")
-
-    for x in range(len(imgs_links)):
-        hemisphere={}
-
-        # Find elements going to click link 
-        browser.find_by_css("a.product-item h3")[x].click()
-
-        # Find sample Image link
-        sample_img= browser.find_link_by_text("Sample").first
-        hemisphere['img_url']=sample_img['href']
-
-        # Get hemisphere Title
-        hemisphere['title']=browser.find_by_css("h2.title").text
-
-        #Add Objects to hemisphere_img_urls list
-        hemisphere_image_urls.append(hemisphere)
-
-        # Go Back
+@app.route("/scrape")
+def scrape():
+    mars = mongo.db.mars
+    mars_data = scraping.scrape_all()
+    mars.update({},mars_data, upsert=True)
+    return redirect('/', code=302)
+    
+if __name__ == "__main__":
+    app.run()
         browser.back()
     return hemisphere_image_urls
 
